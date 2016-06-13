@@ -43,6 +43,13 @@ git init --bare --shared $REPOS/$name || exit 1
 # Initializes repository
 git clone $REPOS/$name $TMPDIR || exit 1
 
+cat <<'EOF' > $TMPDIR/.gitignore
+*~
+*.bak
+*.o
+*.obj
+EOF
+
 mkdir -p $TMPDIR/_git/hooks || exit 1
 hook=$TMPDIR/_git/hooks/commit-msg
 cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
@@ -66,9 +73,11 @@ cat <<'EOF' | sed -e "s|@BT_URL@|$bt_url|" -e "s|@BT_PAT@|$bt_pat|" > $init
 BT_URL="@BT_URL@"
 BT_PAT="@BT_PAT@"
 
+echo "Setting options"
 git config bugtraq.url "$BT_URL"
 git config bugtraq.logregex "$BT_PAT"
 
+echo "Copying configuration files from _git to .git"
 cp -r _git/* .git/
 
 name=`git config user.name`
@@ -93,7 +102,7 @@ chmod 755 $init
 	git config user.name $USER &&
 	git config user.email $MAIL &&
 	git config push.default simple && \
-	git add _git _git-config-init.sh && \
+	git add .gitignore _git _git-config-init.sh && \
 	git commit -m 'Initial commit' && \
 	git push) || exit 1
 rm -rf $TMPDIR
