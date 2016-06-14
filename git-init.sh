@@ -74,6 +74,7 @@ BT_URL="@BT_URL@"
 BT_PAT="@BT_PAT@"
 
 echo "Setting options"
+git config --global core.autocrlf false
 git config push.default simple
 git config merge.ff false
 git config pull.rebase true
