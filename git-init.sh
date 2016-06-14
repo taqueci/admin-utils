@@ -74,6 +74,9 @@ BT_URL="@BT_URL@"
 BT_PAT="@BT_PAT@"
 
 echo "Setting options"
+git config push.default simple
+git config merge.ff false
+git config pull.rebase true
 git config bugtraq.url "$BT_URL"
 git config bugtraq.logregex "$BT_PAT"
 
