@@ -75,6 +75,7 @@ BT_PAT="@BT_PAT@"
 
 echo "Setting options"
 git config --global core.autocrlf false
+git config --global core.ignorecase false
 git config push.default simple
 git config merge.ff false
 git config pull.rebase true
