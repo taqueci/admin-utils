@@ -13,13 +13,15 @@ USER=admin
 if [ -z "$1" ]; then
 	echo "*** ERROR ***: Too few arugments..."
 	echo "Usage: $0 REPOS_NAME"
-	echo "       $0 REPOS_NAME JIRA_PROJ_KEY"
+	echo "       $0 REPOS_NAME JIRA_PROJ_KEY [...]"
 	exit 1
 fi
 
 name=$1
 
-if [ -z "$2" ]; then
+shift
+
+if [ -z "$1" ]; then
 	# Redmine
 	prefix=$PREFIX
 	bt_url=$URL_REDMINE
@@ -27,7 +29,17 @@ if [ -z "$2" ]; then
 "'\d+'
 else
 	# JIRA
-	prefix=$2-
+	prefix='('$1
+
+	shift
+
+	while [ "$1" != "" ]; do
+		prefix=$prefix'|'$1
+		shift
+	done
+
+	prefix=$prefix')'-
+
 	bt_url=$URL_JIRA
 	bt_pat=$prefix'\d+'"
 "$prefix'\d+'
