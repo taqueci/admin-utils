@@ -6,7 +6,6 @@ GROUP=apache
 PREFIX='#'
 URL_REDMINE='/redmine/issues/%BUGID%'
 URL_JIRA='/jira/browse/%BUGID%'
-TMPDIR=/tmp/svn-`date +%s`-$$
 
 USER=admin
 
@@ -50,16 +49,18 @@ if [ -d $REPOS/$name ]; then
 	exit 1
 fi
 
+tmpdir=`mktemp -d`
+
 # Creates Subversion repository
 svnadmin create $REPOS/$name || exit 1
 
 # Initializes repository
-svn co file:///$REPOS/$name $TMPDIR || exit 1
-svn mkdir $TMPDIR/trunk $TMPDIR/branches $TMPDIR/tags || exit 1
-svn propset bugtraq:url $bt_url $TMPDIR/trunk || exit 1
-svn propset bugtraq:logregex "$bt_pat" $TMPDIR/trunk || exit 1
-svn commit --username=$USER -m '' $TMPDIR || exit 1
-rm -rf $TMPDIR
+svn co file:///$REPOS/$name $tmpdir || exit 1
+svn mkdir $tmpdir/trunk $tmpdir/branches $tmpdir/tags || exit 1
+svn propset bugtraq:url $bt_url $tmpdir/trunk || exit 1
+svn propset bugtraq:logregex "$bt_pat" $tmpdir/trunk || exit 1
+svn commit --username=$USER -m '' $tmpdir || exit 1
+rm -rf $tmpdir
 
 # Creates hook script
 hook=$REPOS/$name/hooks/pre-commit

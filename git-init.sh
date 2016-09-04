@@ -6,7 +6,6 @@ GROUP=apache
 PREFIX='#'
 URL_REDMINE='https://www.example.com/redmine/issues/%BUGID%'
 URL_JIRA='https://www.example.com/jira/browse/%BUGID%'
-TMPDIR=/tmp/git-`date +%s`-$$
 
 USER=admin
 MAIL="admin@example.com"
@@ -37,21 +36,23 @@ if [ -d $REPOS/$name ]; then
 	exit 1
 fi
 
+tmpdir=`mktemp -d`
+
 # Creates Git repository
 git init --bare --shared $REPOS/$name || exit 1
 
 # Initializes repository
-git clone $REPOS/$name $TMPDIR || exit 1
+git clone $REPOS/$name $tmpdir || exit 1
 
-cat <<'EOF' > $TMPDIR/.gitignore
+cat <<'EOF' > $tmpdir/.gitignore
 *~
 *.bak
 *.o
 *.obj
 EOF
 
-mkdir -p $TMPDIR/_git/hooks || exit 1
-hook=$TMPDIR/_git/hooks/commit-msg
+mkdir -p $tmpdir/_git/hooks || exit 1
+hook=$tmpdir/_git/hooks/commit-msg
 cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
 #!/bin/sh
 
@@ -66,7 +67,7 @@ exit 0
 EOF
 chmod 755 $hook
 
-init=$TMPDIR/_git-config-init.sh
+init=$tmpdir/_git-config-init.sh
 cat <<'EOF' | sed -e "s|@BT_URL@|$bt_url|" -e "s|@BT_PAT@|$bt_pat|" > $init
 #!/bin/sh
 
@@ -103,14 +104,14 @@ echo "Completed!"
 EOF
 chmod 755 $init
 
-(cd $TMPDIR && \
+(cd $tmpdir && \
 	git config user.name $USER &&
 	git config user.email $MAIL &&
 	git config push.default simple && \
 	git add .gitignore _git _git-config-init.sh && \
 	git commit -m 'Initial commit' && \
 	git push) || exit 1
-rm -rf $TMPDIR
+rm -rf $tmpdir
 
 # Creates hook script for HTTP access
 hook=$REPOS/$name/hooks/post-update
