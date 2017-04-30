@@ -16,12 +16,12 @@ name=$1.git
 if [ -z "$2" ]; then
 	# Redmine
 	prefix='#'
-	bt_url=$GIT_URL_REDMINE
+	bt_url="$GIT_URL_REDMINE/issues/%BUGID%"
 	bt_pat=$prefix'\\d+\n\\d+'
 else
 	# JIRA
 	prefix=$2-
-	bt_url=$GIT_URL_JIRA
+	bt_url="$GIT_URL_JIRA/browse/%BUGID%"
 	bt_pat=$prefix'\\d+\n'$prefix'\\d+'
 fi
 

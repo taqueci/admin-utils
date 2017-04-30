@@ -18,7 +18,7 @@ shift
 if [ -z "$1" ]; then
 	# Redmine
 	prefix='#'
-	bt_url="$SVN_URL_REDMINE/redmine/issues/%BUGID%"
+	bt_url="$SVN_URL_REDMINE/issues/%BUGID%"
 	bt_pat=$prefix'\d+'"
 "'\d+'
 else
