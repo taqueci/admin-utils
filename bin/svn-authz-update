@@ -21,10 +21,10 @@ shift
 
 test -d $SVN_AUTHZ_DIR || mkdir -p $SVN_AUTHZ_DIR || exit 1
 
-perl -I$topdir/lib/perl $topdir/script/svn-authz-tmpl.pl \
+perl -I$topdir/lib/perl $topdir/script/svn-authz-tmpl.pl -l $ADMIN_LOG \
 	-o $SVN_AUTHZ_DIR/$key.authz "$@" || exit 1
 
-perl -I$topdir/lib/perl $topdir/script/svn-authz-merge.pl \
+perl -I$topdir/lib/perl $topdir/script/svn-authz-merge.pl -l $ADMIN_LOG \
 	-o $SVN_AUTHZ_TMPL $SVN_AUTHZ_DIR/*.authz || exit 1
 
 $topdir/bin/svn-authz-crowd || exit 1

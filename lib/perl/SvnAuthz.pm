@@ -7,7 +7,7 @@ use PLib;
 
 sub new {
 	my $class = shift;
-	my $self = {};
+	my $self = {data => {tag => [], block => {}}};
 
 	return bless $self, $class;
 }
@@ -21,28 +21,27 @@ sub read {
 		return 0;
 	}
 
-	my $tag;
-	my %data = (tag => [], block => {});
+	my $name;
+	my @tag;
+	my %val;
 
 	while (my $line = <$fh>) {
 		chomp $line;
 
 		if ($line =~ /^\[([^\]]+)\]/) {
-			$tag = $1;
-
-			push @{$data{tag}}, $tag;
+			$name = $1;
+			push @tag, $name;
 		}
-		elsif ($line =~ /^(~?@?[\w-]+)\s*=/) {
-			my $key = $1;
-
-			push @{$data{block}{$tag}{key}}, $key;
-			$data{block}{$tag}{value}{$key} = $line;
+		elsif (defined $name) {
+			push @{$val{$name}}, $line;
 		}
 	}
 
 	close $fh;
 
-	$self->{data} = \%data;
+	foreach my $t (@tag) {
+		$self->append($t, @{$val{$t}});
+	}
 
 	return 1;
 }
@@ -67,19 +66,9 @@ sub merge {
 	my ($self, $other) = @_;
 
 	foreach my $tag (@{$other->{data}->{tag}}) {
-		my $t = $other->{data}->{block}->{$tag};
+		my $u = $other->{data}->{block}->{$tag};
 
-		if (!defined $self->{data}->{block}->{$tag}) {
-			push @{$self->{data}->{tag}}, $tag;
-			$self->{data}->{block}->{$tag} = {};
-		}
-
-		foreach my $key (@{$t->{key}}) {
-			my $b = $self->{data}->{block}->{$tag};
-
-			push @{$b->{key}}, $key if !defined $b->{value}->{$key};
-			$b->{value}->{$key} = $t->{value}->{$key};
-		}
+		$self->append($tag, map {$u->{value}->{$_}} @{$u->{key}});
 	}
 }
 
@@ -88,12 +77,9 @@ sub content {
 	my @content;
 
 	foreach my $tag (@{$self->{data}->{tag}}) {
-		my @blk = ("[$tag]");
 		my $t = $self->{data}->{block}->{$tag};
 
-		foreach my $key (@{$t->{key}}) {
-			push @blk, $t->{value}->{$key};
-		}
+		my @blk = ("[$tag]", map {$t->{value}->{$_}} @{$t->{key}});
 
 		push @content, join("\n", @blk);
 	}
@@ -106,18 +92,17 @@ sub append {
 
 	if (!defined $self->{data}->{block}->{$tag}) {
 		push @{$self->{data}->{tag}}, $tag;
-		$self->{data}->{block}->{$tag} = {};
+		$self->{data}->{block}->{$tag} = {key => [], value => {}};
 	}
+
+	my $t = $self->{data}->{block}->{$tag};
 
 	foreach my $v (@val) {
 		if ($v =~ /^(~?@?[\w-]+)\s*=/) {
 			my $key = $1;
 
-			if (!defined $self->{data}->{block}->{$tag}->{value}->{$key}) {
-				push @{$self->{data}->{block}->{$tag}->{key}}, $key;
-			}
-
-			$self->{data}->{block}->{$tag}->{value}->{$key} = $v;
+			push @{$t->{key}}, $key if !defined $t->{value}->{$key};
+			$t->{value}->{$key} = $v;
 		}
 	}
 

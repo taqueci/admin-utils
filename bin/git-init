@@ -26,8 +26,8 @@ else
 fi
 
 if [ -d $GIT_REPOS/$name ]; then
-	echo "*** ERROR ***: $GIT_REPOS/$name: Directory already exists..."
-	exit 1
+	echo "*** WARNING ***: $GIT_REPOS/$name: Repository already exists..."
+	exit 0
 fi
 
 tmpdir=`mktemp -d`
