@@ -2,9 +2,9 @@
 
 # Usage: git-backup.sh [BACKUPDIR] [TARGET] ...
 
-TARGETS=/var/lib/git/repos/*
-BACKUPDIR=/var/backups
-PREFIX=git-
+topdir=$(cd $(dirname $0)/.. && pwd)
+
+. $topdir/config/admin.cfg || exit 1
 
 week=`date +%w`
 
@@ -15,13 +15,13 @@ else
 fi
 
 if [ -z "$1" ]; then
-	backupdir=$BACKUPDIR/$subdir
+	backupdir=$GIT_BACKUP_DIR/$subdir
 else
 	backupdir=$1/$subdir
 fi
 
 if [ -z "$2" ]; then
-	targets=$TARGETS
+	targets=$GIT_BACKUP_TARGETS
 else
 	shift
 	targets=$@
@@ -30,7 +30,7 @@ fi
 test -d $backupdir || mkdir -p $backupdir || exit 1
 
 for t in $targets; do
-	repos=$backupdir/$PREFIX`basename $t`
+	repos=$backupdir/$GIT_BACKUP_PREFIX`basename $t`
 
 	if [ -d $repos ]; then
 		echo "Synchronizing Git repository from $t to $repos"

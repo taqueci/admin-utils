@@ -2,9 +2,9 @@
 
 # Usage: svn-backup.sh [BACKUPDIR] [TARGET] ...
 
-TARGETS=/var/lib/svn/repos/*
-BACKUPDIR=/var/backups
-PREFIX=svn-
+topdir=$(cd $(dirname $0)/.. && pwd)
+
+. $topdir/config/admin.cfg || exit 1
 
 week=`date +%w`
 
@@ -15,13 +15,13 @@ else
 fi
 
 if [ -z "$1" ]; then
-	backupdir=$BACKUPDIR/$subdir
+	backupdir=$SVN_BACKUP_DIR/$subdir
 else
 	backupdir=$1/$subdir
 fi
 
 if [ -z "$2" ]; then
-	targets=$TARGETS
+	targets=$SVN_BACKUP_TARGETS
 else
 	shift
 	targets=$@
@@ -30,7 +30,7 @@ fi
 test -d $backupdir || mkdir -p $backupdir || exit 1
 
 for t in $targets; do
-	file=$backupdir/$PREFIX`basename $t`.gz
+	file=$backupdir/$SVN_BACKUP_PREFIX`basename $t`.gz
 	rev=`svnlook youngest $t`
 
 	echo "Creating Subversion dump from $t@r$rev to $file"

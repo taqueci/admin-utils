@@ -1,0 +1,26 @@
+#!/bin/sh
+
+topdir=$(cd $(dirname $0)/.. && pwd)
+
+. $topdir/config/admin.cfg || exit 1
+
+tmp_authz=`mktemp`
+tmp_config=`mktemp`
+
+cat <<EOF > $tmp_config
+crowd.base.url=$SVN_CROWD_URL
+application.name=$SVN_CROWD_NAME
+application.password=$SVN_CROWD_PASSWD
+EOF
+
+if $SVN_CROWD_SCRIPT --config $tmp_config --check-event-token $SVN_AUTHZ; then
+	: # Do nothing; file is current
+else
+	$SVN_CROWD_SCRIPT --config $tmp_config $SVN_AUTHZ_TMPL > $tmp_authz &&
+		install -o $SVN_OWNER -g $SVN_GROUP -m 600 $tmp_authz $SVN_AUTHZ || {
+			rm -f $tmp_authz $tmp_config
+			exit 1
+		}
+fi
+
+rm -f $tmp_authz $tmp_config

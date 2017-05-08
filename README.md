@@ -1,41 +1,49 @@
-# misc
+# admin-utils
 
-## git-init.sh
+Miscellaneous scripts
+
+## Usage
+
+Copy `config/admin.cfg.tmpl` to `config/admin.cfg`
+and set suitable variables in `config/admin.cfg`.
+
+## bin/git-init
 
 Creates Git repository with initializaion script.
 
 ### Usage
 
-Set variables in the script and execute.
-
 For Redmine:
 
-    # ./git-init.sh REPOS_NAME
+    ./bin/git-init REPOS_NAME
 
 For JIRA:
 
-    # ./git-init.sh REPOS_NAME JIRA_PROJ_KEY
+    ./bin/git-init REPOS_NAME JIRA_PROJ_KEY
 
-## svn-init.sh
+## bin/svn-init
 
 Creates Subversion repository with standard layout and a hook script.
 
 ### Usage
 
-Set variables in the script and execute.
-
 For Redmine:
 
-    # ./svn-init.sh REPOS_NAME
+    ./bin/svn-init REPOS_NAME
 
 For JIRA:
 
-    # ./svn-init.sh REPOS_NAME JIRA_PROJ_KEY
+    ./bin/svn-init REPOS_NAME JIRA_PROJ_KEY
 
-## diskck.sh
+## bin/svn-authz-update
 
-Checks disk usage.
+Creates Subversion AUTHZ template file for Atlassian Crowd
+and update AUTHZ file.
 
 ### Usage
 
-Set `LIMIT` and `TARGETS` in the script and put into `/etc/cron.daily`.
+    ./bin/svn-authz-update JIRA_PROJ_KEY \
+        -r repos1 -r repos2 \
+        @xyz-administrators:/=r,/trunk=rw,/branches=rw,/tags=rw \
+        @xyz-developers:/=r,/trunk=rw,/branches=rw,/tags=r \
+        @xyz-users:/=r,/trunk=r,/branches=r,/tags=r

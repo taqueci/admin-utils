@@ -1,14 +1,8 @@
 #!/bin/sh
 
-REPOS=/var/lib/git/repos
-OWNER=apache
-GROUP=apache
-PREFIX='#'
-URL_REDMINE='https://www.example.com/redmine/issues/%BUGID%'
-URL_JIRA='https://www.example.com/jira/browse/%BUGID%'
+topdir=$(cd $(dirname $0)/.. && pwd)
 
-USER=admin
-MAIL="admin@example.com"
+. $topdir/config/admin.cfg || exit 1
 
 if [ -z "$1" ]; then
 	echo "*** ERROR ***: Too few arugments..."
@@ -21,28 +15,28 @@ name=$1.git
 
 if [ -z "$2" ]; then
 	# Redmine
-	prefix=$PREFIX
-	bt_url=$URL_REDMINE
+	prefix='#'
+	bt_url="$GIT_URL_REDMINE/issues/%BUGID%"
 	bt_pat=$prefix'\\d+\n\\d+'
 else
 	# JIRA
 	prefix=$2-
-	bt_url=$URL_JIRA
+	bt_url="$GIT_URL_JIRA/browse/%BUGID%"
 	bt_pat=$prefix'\\d+\n'$prefix'\\d+'
 fi
 
-if [ -d $REPOS/$name ]; then
-	echo "*** ERROR ***: $REPOS/$name: Directory already exists..."
-	exit 1
+if [ -d $GIT_REPOS/$name ]; then
+	echo "*** WARNING ***: $GIT_REPOS/$name: Repository already exists..."
+	exit 0
 fi
 
 tmpdir=`mktemp -d`
 
 # Creates Git repository
-git init --bare --shared $REPOS/$name || exit 1
+git init --bare --shared $GIT_REPOS/$name || exit 1
 
 # Initializes repository
-git clone $REPOS/$name $tmpdir || exit 1
+git clone $GIT_REPOS/$name $tmpdir || exit 1
 
 cat <<'EOF' > $tmpdir/.gitignore
 *~
@@ -51,24 +45,11 @@ cat <<'EOF' > $tmpdir/.gitignore
 *.obj
 EOF
 
-mkdir -p $tmpdir/_git/hooks || exit 1
-hook=$tmpdir/_git/hooks/commit-msg
-cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
-#!/bin/sh
-
-PREFIX="@PREFIX@"
-
-egrep "$PREFIX"'[1-9][0-9]*' "$1" > /dev/null || {
-	echo "No issue number" >&2
-	exit 1
-}
-
-exit 0
-EOF
-chmod 755 $hook
-
 init=$tmpdir/_git-config-init.sh
-cat <<'EOF' | sed -e "s|@BT_URL@|$bt_url|" -e "s|@BT_PAT@|$bt_pat|" > $init
+cat <<'EOF' | \
+	sed -e "s|@PREFIX@|$prefix|" \
+		-e "s|@BT_URL@|$bt_url|" \
+		-e "s|@BT_PAT@|$bt_pat|" > $init
 #!/bin/sh
 
 BT_URL="@BT_URL@"
@@ -83,8 +64,19 @@ git config pull.rebase true
 git config bugtraq.url "$BT_URL"
 git config bugtraq.logregex "$BT_PAT"
 
-echo "Copying configuration files from _git to .git"
-cp -r _git/* .git/
+cat >.git/hooks/commit-msg <<'EOS'
+#!/bin/sh
+
+PREFIX="@PREFIX@"
+
+egrep "$PREFIX"'[1-9][0-9]*' "$1" > /dev/null || {
+	echo "No issue number" >&2
+	exit 1
+}
+
+exit 0
+EOS
+chmod u+x .git/hooks/commit-msg
 
 name=`git config user.name`
 echo -n "Enter full name (e.g. Steven Tyler) [$name]: "
@@ -105,16 +97,16 @@ EOF
 chmod 755 $init
 
 (cd $tmpdir && \
-	git config user.name $USER &&
-	git config user.email $MAIL &&
+	git config user.name $GIT_USER &&
+	git config user.email $GIT_MAIL &&
 	git config push.default simple && \
-	git add .gitignore _git _git-config-init.sh && \
+	git add .gitignore _git-config-init.sh && \
 	git commit -m 'Initial commit' && \
 	git push) || exit 1
 rm -rf $tmpdir
 
 # Creates hook script for HTTP access
-hook=$REPOS/$name/hooks/post-update
+hook=$GIT_REPOS/$name/hooks/post-update
 cat <<'EOF' > $hook
 #!/bin/sh
 
@@ -123,6 +115,6 @@ EOF
 chmod 755 $hook
 
 # Changes ownerships
-chown -R $OWNER:$GROUP $REPOS/$name || exit 1
+chown -R $GIT_OWNER:$GIT_GROUP $GIT_REPOS/$name || exit 1
 
 echo "Completed!"

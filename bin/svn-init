@@ -1,13 +1,8 @@
 #!/bin/sh
 
-REPOS=/var/lib/svn/repos
-OWNER=apache
-GROUP=apache
-PREFIX='#'
-URL_REDMINE='/redmine/issues/%BUGID%'
-URL_JIRA='/jira/browse/%BUGID%'
+topdir=$(cd $(dirname $0)/.. && pwd)
 
-USER=admin
+. $topdir/config/admin.cfg || exit 1
 
 if [ -z "$1" ]; then
 	echo "*** ERROR ***: Too few arugments..."
@@ -22,8 +17,8 @@ shift
 
 if [ -z "$1" ]; then
 	# Redmine
-	prefix=$PREFIX
-	bt_url=$URL_REDMINE
+	prefix='#'
+	bt_url="$SVN_URL_REDMINE/issues/%BUGID%"
 	bt_pat=$prefix'\d+'"
 "'\d+'
 else
@@ -39,31 +34,31 @@ else
 
 	prefix=$prefix')'-
 
-	bt_url=$URL_JIRA
+	bt_url="$SVN_URL_JIRA/browse/%BUGID%"
 	bt_pat=$prefix'\d+'"
 "$prefix'\d+'
 fi
 
-if [ -d $REPOS/$name ]; then
-	echo "*** ERROR ***: $REPOS/$name: Directory already exists..."
-	exit 1
+if [ -d $SVN_REPOS/$name ]; then
+	echo "*** WARNING ***: $SVN_REPOS/$name: Repository already exists..."
+	exit 0
 fi
 
 tmpdir=`mktemp -d`
 
 # Creates Subversion repository
-svnadmin create $REPOS/$name || exit 1
+svnadmin create $SVN_REPOS/$name || exit 1
 
 # Initializes repository
-svn co file:///$REPOS/$name $tmpdir || exit 1
+svn co file:///$SVN_REPOS/$name $tmpdir || exit 1
 svn mkdir $tmpdir/trunk $tmpdir/branches $tmpdir/tags || exit 1
 svn propset bugtraq:url $bt_url $tmpdir/trunk || exit 1
 svn propset bugtraq:logregex "$bt_pat" $tmpdir/trunk || exit 1
-svn commit --username=$USER -m '' $tmpdir || exit 1
+svn commit --username=$SVN_USER -m '' $tmpdir || exit 1
 rm -rf $tmpdir
 
 # Creates hook script
-hook=$REPOS/$name/hooks/pre-commit
+hook=$SVN_REPOS/$name/hooks/pre-commit
 cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
 #!/bin/sh
 
@@ -72,7 +67,7 @@ TXN="$2"
 PREFIX="@PREFIX@"
 
 SVNLOOK=/usr/bin/svnlook
-$SVNLOOK log -t "$TXN" "$REPOS" | egrep "$PREFIX"'[1-9][0-9]*' > /dev/null
+$SVNLOOK log -t "$TXN" "$SVN_REPOS" | egrep "$PREFIX"'[1-9][0-9]*' > /dev/null
 
 if [ "$?" != "0" ]; then
 	echo "No issue number" >&2
@@ -85,6 +80,6 @@ EOF
 chmod 755 $hook
 
 # Changes ownerships
-chown -R $OWNER:$GROUP $REPOS/$name || exit 1
+chown -R $SVN_OWNER:$SVN_GROUP $SVN_REPOS/$name || exit 1
 
 echo "Completed!"
