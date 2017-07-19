@@ -67,7 +67,7 @@ TXN="$2"
 PREFIX="@PREFIX@"
 
 SVNLOOK=/usr/bin/svnlook
-$SVNLOOK log -t "$TXN" "$SVN_REPOS" | egrep "$PREFIX"'[1-9][0-9]*' > /dev/null
+$SVNLOOK log -t "$TXN" "$REPOS" | egrep "$PREFIX"'[1-9][0-9]*' > /dev/null
 
 if [ "$?" != "0" ]; then
 	echo "No issue number" >&2
