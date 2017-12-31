@@ -1,0 +1,98 @@
+#!/bin/sh
+
+topdir=$(cd $(dirname $0)/.. && pwd)
+
+. $topdir/config/admin.cfg || exit 1
+
+if [ -z "$2" ]; then
+	echo "*** ERROR ***: Too few arugments..."
+	echo "Usage: $0 REPOS_NAME BITBUCKET_PROJ_KEY JIRA_PROJ_KEY"
+	exit 1
+fi
+
+key=$2
+
+if [ -z "$3" ]; then
+	prefix=$key-
+else
+	prefix=$3-
+fi
+
+repos=$BITBUCKET_URL/scm/`echo $key | tr "[:upper:]" "[:lower:]"`/$1.git
+
+bt_url="$GIT_URL_JIRA/browse/%BUGID%"
+bt_pat=$prefix'\\d+\n'$prefix'\\d+'
+
+tmpdir=`mktemp -d`
+
+# Initializes repository
+git clone $repos $tmpdir || exit 1
+
+cat <<'EOF' > $tmpdir/.gitignore
+*~
+*.bak
+*.o
+*.obj
+EOF
+
+init=$tmpdir/_git-config-init.sh
+cat <<'EOF' | \
+	sed -e "s|@PREFIX@|$prefix|" \
+		-e "s|@BT_URL@|$bt_url|" \
+		-e "s|@BT_PAT@|$bt_pat|" > $init
+#!/bin/sh
+
+BT_URL="@BT_URL@"
+BT_PAT="@BT_PAT@"
+
+echo "Setting options"
+git config --global core.autocrlf false
+git config --global core.ignorecase false
+git config push.default simple
+git config merge.ff false
+git config pull.rebase true
+git config bugtraq.url "$BT_URL"
+git config bugtraq.logregex "$BT_PAT"
+
+cat >.git/hooks/commit-msg <<'EOS'
+#!/bin/sh
+
+PREFIX="@PREFIX@"
+
+egrep "$PREFIX"'[1-9][0-9]*' "$1" > /dev/null || {
+	echo "No issue number" >&2
+	exit 1
+}
+
+exit 0
+EOS
+chmod u+x .git/hooks/commit-msg
+
+name=`git config user.name`
+echo -n "Enter full name (e.g. Steven Tyler) [$name]: "
+read name
+if [ ! -z "$name" ]; then
+	git config --global user.name "$name"
+fi
+
+email=`git config user.email`
+echo -n "Enter e-mail address [$email]: "
+read email
+if [ ! -z "$email" ]; then
+	git config --global user.email "$email"
+fi
+
+echo "Completed!"
+EOF
+chmod 755 $init
+
+(cd $tmpdir && \
+	git config user.name $GIT_USER &&
+	git config user.email $GIT_MAIL &&
+	git config push.default simple && \
+	git add .gitignore _git-config-init.sh && \
+	git commit -m 'Initial commit' && \
+	git push) || exit 1
+rm -rf $tmpdir
+
+echo "Completed!"
