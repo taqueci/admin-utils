@@ -1,0 +1,3 @@
+# Crontab for admin-utils
+# 0 5 * * * root admin-svn-backup
+# 0 5 * * * root admin-git-backup

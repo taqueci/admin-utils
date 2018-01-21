@@ -1,32 +1,49 @@
 #!/bin/sh
 
-topdir=$(cd $(dirname $0)/.. && pwd)
+if [ -f /etc/admin-utils.conf ]; then
+	. /etc/admin-utils.conf || exit 1
+else
+	topdir=$(cd $(dirname $0)/.. && pwd)
+	. $topdir/config/admin-utils.conf || exit 1
+	ADMIN_UTILS_BIN=$topdir/bin
+	ADMIN_UTILS_LIB=$topdir/lib
+	ADMIN_UTILS_SCRIPT=$topdir/script
+fi
 
-. $topdir/config/admin.cfg || exit 1
 
-if [ -z "$2" ]; then
+if [ -z "$1" ]; then
 	echo "*** ERROR ***: Too few arugments..."
-	echo "Usage: $0 REPOS_NAME BITBUCKET_PROJ_KEY JIRA_PROJ_KEY"
+	echo "Usage: $0 REPOS_NAME"
+	echo "       $0 REPOS_NAME JIRA_PROJ_KEY"
 	exit 1
 fi
 
-key=$2
+name=$1.git
 
-if [ -z "$3" ]; then
-	prefix=$key-
+if [ -z "$2" ]; then
+	# Redmine
+	prefix='#'
+	bt_url="$admin_git_url_redmine/issues/%BUGID%"
+	bt_pat=$prefix'\\d+\n\\d+'
 else
-	prefix=$3-
+	# JIRA
+	prefix=$2-
+	bt_url="$admin_git_url_jira/browse/%BUGID%"
+	bt_pat=$prefix'\\d+\n'$prefix'\\d+'
 fi
 
-repos=$BITBUCKET_URL/scm/`echo $key | tr "[:upper:]" "[:lower:]"`/$1.git
-
-bt_url="$GIT_URL_JIRA/browse/%BUGID%"
-bt_pat=$prefix'\\d+\n'$prefix'\\d+'
+if [ -d $admin_git_repos/$name ]; then
+	echo "*** WARNING ***: $admin_git_repos/$name: Repository already exists..."
+	exit 0
+fi
 
 tmpdir=`mktemp -d`
 
+# Creates Git repository
+git init --bare --shared $admin_git_repos/$name || exit 1
+
 # Initializes repository
-git clone $repos $tmpdir || exit 1
+git clone $admin_git_repos/$name $tmpdir || exit 1
 
 cat <<'EOF' > $tmpdir/.gitignore
 *~
@@ -87,12 +104,24 @@ EOF
 chmod 755 $init
 
 (cd $tmpdir && \
-	git config user.name $GIT_USER &&
-	git config user.email $GIT_MAIL &&
+	git config user.name $admin_git_user &&
+	git config user.email $admin_git_mail &&
 	git config push.default simple && \
 	git add .gitignore _git-config-init.sh && \
 	git commit -m 'Initial commit' && \
 	git push) || exit 1
 rm -rf $tmpdir
+
+# Creates hook script for HTTP access
+hook=$admin_git_repos/$name/hooks/post-update
+cat <<'EOF' > $hook
+#!/bin/sh
+
+exec git update-server-info
+EOF
+chmod 755 $hook
+
+# Changes ownerships
+chown -R $admin_git_owner:$admin_git_group $admin_git_repos/$name || exit 1
 
 echo "Completed!"

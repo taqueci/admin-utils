@@ -2,9 +2,16 @@
 
 # Usage: git-backup.sh [BACKUPDIR] [TARGET] ...
 
-topdir=$(cd $(dirname $0)/.. && pwd)
+if [ -f /etc/admin-utils.conf ]; then
+	. /etc/admin-utils.conf || exit 1
+else
+	topdir=$(cd $(dirname $0)/.. && pwd)
+	. $topdir/config/admin-utils.conf || exit 1
+	ADMIN_UTILS_BIN=$topdir/bin
+	ADMIN_UTILS_LIB=$topdir/lib
+	ADMIN_UTILS_SCRIPT=$topdir/script
+fi
 
-. $topdir/config/admin.cfg || exit 1
 
 week=`date +%w`
 
@@ -15,13 +22,13 @@ else
 fi
 
 if [ -z "$1" ]; then
-	backupdir=$GIT_BACKUP_DIR/$subdir
+	backupdir=$admin_git_backup_dir/$subdir
 else
 	backupdir=$1/$subdir
 fi
 
 if [ -z "$2" ]; then
-	targets=$GIT_BACKUP_TARGETS
+	targets=$admin_git_backup_targets
 else
 	shift
 	targets=$@
@@ -30,7 +37,7 @@ fi
 test -d $backupdir || mkdir -p $backupdir || exit 1
 
 for t in $targets; do
-	repos=$backupdir/$GIT_BACKUP_PREFIX`basename $t`
+	repos=$backupdir/$admin_git_backup_prefix`basename $t`
 
 	if [ -d $repos ]; then
 		echo "Synchronizing Git repository from $t to $repos"

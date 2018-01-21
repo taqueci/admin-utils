@@ -1,8 +1,15 @@
 #!/bin/sh
 
-topdir=$(cd $(dirname $0)/.. && pwd)
+if [ -f /etc/admin-utils.conf ]; then
+	. /etc/admin-utils.conf || exit 1
+else
+	topdir=$(cd $(dirname $0)/.. && pwd)
+	. $topdir/config/admin-utils.conf || exit 1
+	ADMIN_UTILS_BIN=$topdir/bin
+	ADMIN_UTILS_LIB=$topdir/lib
+	ADMIN_UTILS_SCRIPT=$topdir/script
+fi
 
-. $topdir/config/admin.cfg || exit 1
 
 if [ -z "$1" ]; then
 	echo "*** ERROR ***: Too few arugments..."
@@ -18,7 +25,7 @@ shift
 if [ -z "$1" ]; then
 	# Redmine
 	prefix='#'
-	bt_url="$SVN_URL_REDMINE/issues/%BUGID%"
+	bt_url="$admin_svn_url_redmine/issues/%BUGID%"
 	bt_pat=$prefix'\d+'"
 "'\d+'
 else
@@ -34,31 +41,31 @@ else
 
 	prefix=$prefix')'-
 
-	bt_url="$SVN_URL_JIRA/browse/%BUGID%"
+	bt_url="$admin_svn_url_jira/browse/%BUGID%"
 	bt_pat=$prefix'\d+'"
 "$prefix'\d+'
 fi
 
-if [ -d $SVN_REPOS/$name ]; then
-	echo "*** WARNING ***: $SVN_REPOS/$name: Repository already exists..."
+if [ -d $admin_svn_repos/$name ]; then
+	echo "*** WARNING ***: $admin_svn_repos/$name: Repository already exists..."
 	exit 0
 fi
 
 tmpdir=`mktemp -d`
 
 # Creates Subversion repository
-svnadmin create $SVN_REPOS/$name || exit 1
+svnadmin create $admin_svn_repos/$name || exit 1
 
 # Initializes repository
-svn co file:///$SVN_REPOS/$name $tmpdir || exit 1
+svn co file://$admin_svn_repos/$name $tmpdir || exit 1
 svn mkdir $tmpdir/trunk $tmpdir/branches $tmpdir/tags || exit 1
-svn propset bugtraq:url $bt_url $tmpdir/trunk || exit 1
+svn propset bugtraq:url "$bt_url" $tmpdir/trunk || exit 1
 svn propset bugtraq:logregex "$bt_pat" $tmpdir/trunk || exit 1
-svn commit --username=$SVN_USER -m '' $tmpdir || exit 1
+svn commit --username=$admin_svn_user -m '' $tmpdir || exit 1
 rm -rf $tmpdir
 
 # Creates hook script
-hook=$SVN_REPOS/$name/hooks/pre-commit
+hook=$admin_svn_repos/$name/hooks/pre-commit
 cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
 #!/bin/sh
 
@@ -80,6 +87,6 @@ EOF
 chmod 755 $hook
 
 # Changes ownerships
-chown -R $SVN_OWNER:$SVN_GROUP $SVN_REPOS/$name || exit 1
+chown -R $admin_svn_owner:$admin_svn_group $admin_svn_repos/$name || exit 1
 
 echo "Completed!"
