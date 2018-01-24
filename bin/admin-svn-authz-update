@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Example:
 #   svn-authz-update XXXXXX \ 
@@ -7,15 +7,18 @@
 #     @XXXXXX-developers:/=r,/trunk=rw,/branches=rw,/tags=r \ 
 #     @XXXXXX-users:/=r,/trunk=r,/branches=r,/tags=r
 
-if [ -f /etc/admin-utils.conf ]; then
-	. /etc/admin-utils.conf || exit 1
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
 else
-	topdir=$(cd $(dirname $0)/.. && pwd)
-	. $topdir/config/admin-utils.conf || exit 1
-	ADMIN_UTILS_BIN=$topdir/bin
-	ADMIN_UTILS_LIB=$topdir/lib
-	ADMIN_UTILS_SCRIPT=$topdir/script
+	conf=/etc/admin-utils.conf
 fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
 
 
 if [ -z "$1" ]; then

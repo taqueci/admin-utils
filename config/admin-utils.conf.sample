@@ -4,8 +4,8 @@ admin_svn_repos=/var/lib/svn/repos
 
 admin_svn_user=admin
 
-admin_svn_owner=takeshi
-admin_svn_group=takeshi
+admin_svn_owner=www-data
+admin_svn_group=www-data
 
 admin_svn_url_redmine=/redmine
 admin_svn_url_jira=https://example.com/jira
@@ -21,7 +21,7 @@ admin_svn_crowd_passwd=
 admin_svn_crowd_script=/opt/bin/generate-authz-svn-access-file.py
 
 admin_svn_backup_targets=$admin_svn_repos/*
-admin_svn_backup_dir=/var/backups
+admin_svn_backup_dir=/var/backups/%Y/%m/%d
 admin_svn_backup_prefix=svn-
 
 admin_git_repos=/var/lib/git/repos
@@ -36,12 +36,7 @@ admin_git_url_redmine=https://example.com/redmine
 admin_git_url_jira=https://example.com/jira
 
 admin_git_backup_targets=$admin_git_repos/*
-admin_git_backup_dir=/var/backups
+admin_git_backup_dir=/var/backups/%Y/%m/%d
 admin_git_backup_prefix=git-
 
 admin_bitbucket_url=https://exmaple.com/bitbucket
-
-# DO NOT EDIT THE FOLLOWING VALUES
-ADMIN_UTILS_BIN=@ADMIN_UTILS_BIN@
-ADMIN_UTILS_LIB=@ADMIN_UTILS_LIB@
-ADMIN_UTILS_SCRIPT=@ADMIN_UTILS_SCRIPT@

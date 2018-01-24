@@ -27,10 +27,14 @@ Miscellaneous scripts for system administrator.
 rm -rf %{buildroot}
 
 mkdir -p %{buildroot}%{_sysconfdir}
-sed -e "s|@ADMIN_UTILS_BIN@|%{_bindir}|g" \
-	-e "s|@ADMIN_UTILS_LIB@|%{_libexecdir}/admin-utils/lib|g" \
-	-e "s|@ADMIN_UTILS_SCRIPT@|%{_libexecdir}/admin-utils/script|g" \
-	config/admin-utils.conf.sample > config/admin-utils.conf
+cp config/admin-utils.conf.sample config/admin-utils.conf
+cat <<EOF >> config/admin-utils.conf
+
+# DO NOT EDIT THE FOLLOWING VALUES
+ADMIN_UTILS_BIN=%{_bindir}
+ADMIN_UTILS_LIB=%{_libexecdir}/admin-utils/lib
+ADMIN_UTILS_SCRIPT=%{_libexecdir}/admin-utils/script
+EOF
 install -m 640 config/admin-utils.conf \
 		%{buildroot}%{_sysconfdir}/admin-utils.conf
 

@@ -1,15 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 
-if [ -f /etc/admin-utils.conf ]; then
-	. /etc/admin-utils.conf || exit 1
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
 else
-	topdir=$(cd $(dirname $0)/.. && pwd)
-	. $topdir/config/admin-utils.conf || exit 1
-	ADMIN_UTILS_BIN=$topdir/bin
-	ADMIN_UTILS_LIB=$topdir/lib
-	ADMIN_UTILS_SCRIPT=$topdir/script
+	conf=/etc/admin-utils.conf
 fi
-
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
 
 
 if [ -z "$2" ]; then
@@ -18,89 +20,15 @@ if [ -z "$2" ]; then
 	exit 1
 fi
 
-key=$2
-
-if [ -z "$3" ]; then
-	prefix=$key-
-else
-	prefix=$3-
-fi
-
-repos=$admin_bitbucket_url/scm/`echo $key | tr "[:upper:]" "[:lower:]"`/$1.git
+repos=$admin_bitbucket_url/scm/$(echo $2 | tr "[:upper:]" "[:lower:]")/$1.git
+key=${3:-$2}
 
 bt_url="$admin_git_url_jira/browse/%BUGID%"
-bt_pat=$prefix'\\d+\n'$prefix'\\d+'
-
-tmpdir=`mktemp -d`
+bt_id="$key-[1-9][0-9]*"
+bt_pat=$bt_id
 
 # Initializes repository
-git clone $repos $tmpdir || exit 1
-
-cat <<'EOF' > $tmpdir/.gitignore
-*~
-*.bak
-*.o
-*.obj
-EOF
-
-init=$tmpdir/_git-config-init.sh
-cat <<'EOF' | \
-	sed -e "s|@PREFIX@|$prefix|" \
-		-e "s|@BT_URL@|$bt_url|" \
-		-e "s|@BT_PAT@|$bt_pat|" > $init
-#!/bin/sh
-
-BT_URL="@BT_URL@"
-BT_PAT="@BT_PAT@"
-
-echo "Setting options"
-git config --global core.autocrlf false
-git config --global core.ignorecase false
-git config push.default simple
-git config merge.ff false
-git config pull.rebase true
-git config bugtraq.url "$BT_URL"
-git config bugtraq.logregex "$BT_PAT"
-
-cat >.git/hooks/commit-msg <<'EOS'
-#!/bin/sh
-
-PREFIX="@PREFIX@"
-
-egrep "$PREFIX"'[1-9][0-9]*' "$1" > /dev/null || {
-	echo "No issue number" >&2
-	exit 1
-}
-
-exit 0
-EOS
-chmod u+x .git/hooks/commit-msg
-
-name=`git config user.name`
-echo -n "Enter full name (e.g. Steven Tyler) [$name]: "
-read name
-if [ ! -z "$name" ]; then
-	git config --global user.name "$name"
-fi
-
-email=`git config user.email`
-echo -n "Enter e-mail address [$email]: "
-read email
-if [ ! -z "$email" ]; then
-	git config --global user.email "$email"
-fi
-
-echo "Completed!"
-EOF
-chmod 755 $init
-
-(cd $tmpdir && \
-	git config user.name $admin_git_user &&
-	git config user.email $admin_git_mail &&
-	git config push.default simple && \
-	git add .gitignore _git-config-init.sh && \
-	git commit -m 'Initial commit' && \
-	git push) || exit 1
-rm -rf $tmpdir
+$admin_utils_bin/admin-git-prep $repos $admin_git_user $admin_git_mail \
+	$bt_url $bt_pat $bt_id || exit 1
 
 echo "Completed!"
