@@ -62,6 +62,7 @@ rm -rf %{buildroot}
 %{_bindir}/admin-bitbucket-prep
 %{_bindir}/admin-git-backup
 %{_bindir}/admin-git-init
+%{_bindir}/admin-git-prep
 %{_bindir}/admin-svn-authz-crowd
 %{_bindir}/admin-svn-authz-update
 %{_bindir}/admin-svn-backup
