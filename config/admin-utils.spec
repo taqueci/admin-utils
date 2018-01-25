@@ -66,4 +66,6 @@ rm -rf %{buildroot}
 %{_bindir}/admin-svn-authz-update
 %{_bindir}/admin-svn-backup
 %{_bindir}/admin-svn-init
+%{_bindir}/admin-mysql-backup
+%{_bindir}/admin-psql-backup
 %{_libexecdir}/admin-utils

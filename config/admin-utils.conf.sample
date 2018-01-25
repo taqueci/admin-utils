@@ -40,3 +40,16 @@ admin_git_backup_dir=/var/backups/%Y/%m/%d
 admin_git_backup_prefix=git-
 
 admin_bitbucket_url=https://exmaple.com/bitbucket
+
+admin_mysql_user=admin
+admin_mysql_password=password
+
+admin_mysql_backup_targets=""
+admin_mysql_backup_dir=/var/backups/%Y/%m/%d
+admin_mysql_backup_prefix=mysql-
+
+admin_psql_user=admin
+
+admin_psql_backup_targets=""
+admin_psql_backup_dir=/var/backups/%Y/%m/%d
+admin_psql_backup_prefix=psql-
