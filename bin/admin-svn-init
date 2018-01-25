@@ -1,0 +1,95 @@
+#!/bin/bash
+
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
+else
+	conf=/etc/admin-utils.conf
+fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
+
+
+if [ -z "$1" ]; then
+	echo "*** ERROR ***: Too few arugments..."
+	echo "Usage: $0 REPOS_NAME"
+	echo "       $0 REPOS_NAME JIRA_PROJ_KEY [...]"
+	exit 1
+fi
+
+name=$1
+
+shift
+
+if [ -z "$1" ]; then
+	# Redmine
+	prefix='#'
+	bt_url="$admin_svn_url_redmine/issues/%BUGID%"
+	bt_pat=$prefix'\d+'"
+"'\d+'
+else
+	# JIRA
+	prefix='('$1
+
+	shift
+
+	while [ "$1" != "" ]; do
+		prefix=$prefix'|'$1
+		shift
+	done
+
+	prefix=$prefix')'-
+
+	bt_url="$admin_svn_url_jira/browse/%BUGID%"
+	bt_pat=$prefix'\d+'"
+"$prefix'\d+'
+fi
+
+if [ -d $admin_svn_repos/$name ]; then
+	echo "*** WARNING ***: $admin_svn_repos/$name: Repository already exists..."
+	exit 0
+fi
+
+tmpdir=$(mktemp -d)
+
+# Creates Subversion repository
+svnadmin create $admin_svn_repos/$name || exit 1
+
+# Initializes repository
+svn co file://$admin_svn_repos/$name $tmpdir || exit 1
+svn mkdir $tmpdir/trunk $tmpdir/branches $tmpdir/tags || exit 1
+svn propset bugtraq:url "$bt_url" $tmpdir/trunk || exit 1
+svn propset bugtraq:logregex "$bt_pat" $tmpdir/trunk || exit 1
+svn commit --username=$admin_svn_user -m '' $tmpdir || exit 1
+rm -rf $tmpdir
+
+# Creates hook script
+hook=$admin_svn_repos/$name/hooks/pre-commit
+cat <<'EOF' | sed "s/@PREFIX@/$prefix/" > $hook
+#!/bin/sh
+
+REPOS="$1"
+TXN="$2"
+PREFIX="@PREFIX@"
+
+SVNLOOK=/usr/bin/svnlook
+$SVNLOOK log -t "$TXN" "$REPOS" | egrep "$PREFIX"'[1-9][0-9]*' > /dev/null
+
+if [ "$?" != "0" ]; then
+	echo "No issue number" >&2
+	exit 1
+fi
+
+exit 0
+EOF
+
+chmod 755 $hook
+
+# Changes ownerships
+chown -R $admin_svn_owner:$admin_svn_group $admin_svn_repos/$name || exit 1
+
+echo "Completed!"

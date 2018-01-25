@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Example:
+#   svn-authz-update XXXXXX \ 
+#     -r project-x -r project-y \ 
+#     @XXXXXX-administrators:/=r,/trunk=rw,/branches=rw,/tags=rw \ 
+#     @XXXXXX-developers:/=r,/trunk=rw,/branches=rw,/tags=r \ 
+#     @XXXXXX-users:/=r,/trunk=r,/branches=r,/tags=r
+
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
+else
+	conf=/etc/admin-utils.conf
+fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
+
+
+if [ -z "$1" ]; then
+	echo "*** ERROR ***: Too few arguments"
+	exit 1
+fi
+
+key=$1
+shift
+
+test -d $admin_svn_authz_dir || mkdir -p $admin_svn_authz_dir || exit 1
+
+perl -I$ADMIN_UTILS_LIB/perl $ADMIN_UTILS_SCRIPT/svn-authz-tmpl.pl \
+	-o $admin_svn_authz_dir/$key.authz "$@" || exit 1
+
+perl -I$ADMIN_UTILS_LIB/perl $ADMIN_UTILS_SCRIPT/svn-authz-merge.pl \
+	-o $admin_svn_authz_tmpl $admin_svn_authz_dir/*.authz || exit 1
+
+$ADMIN_UTILS_BIN/admin-svn-authz-crowd || exit 1

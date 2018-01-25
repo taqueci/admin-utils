@@ -1,0 +1,63 @@
+#!/bin/bash
+
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
+else
+	conf=/etc/admin-utils.conf
+fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
+
+
+if [ -z "$1" ]; then
+	echo "*** ERROR ***: Too few arugments..."
+	echo "Usage: $0 REPOS_NAME"
+	echo "       $0 REPOS_NAME JIRA_PROJ_KEY"
+	exit 1
+fi
+
+repos=$admin_git_repos/$1.git
+key=$2
+
+if [ -z "$key" ]; then
+	# Redmine
+	bt_url="$admin_git_url_redmine/issues/%BUGID%"
+	bt_id="[1-9][0-9]*"
+	bt_pat="#$bt_id"
+else
+	# JIRA
+	bt_url="$admin_git_url_jira/browse/%BUGID%"
+	bt_id="$key-[1-9][0-9]*"
+	bt_pat=$bt_id
+fi
+
+if [ -d $repos ]; then
+	echo "*** WARNING ***: $repos: Repository already exists..."
+	exit 0
+fi
+
+# Creates Git repository
+git init --bare --shared $repos || exit 1
+
+# Initializes repository
+$admin_utils_bin/admin-git-prep $repos $admin_git_user $admin_git_mail \
+	$bt_url $bt_pat $bt_id || exit 1
+
+# Creates hook script for HTTP access
+hook=$repos/hooks/post-update
+cat <<'EOF' > $hook
+#!/bin/sh
+
+exec git update-server-info
+EOF
+chmod 755 $hook
+
+# Changes ownerships
+chown -R $admin_git_owner:$admin_git_group $repos || exit 1
+
+echo "Completed!"

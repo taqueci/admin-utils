@@ -4,10 +4,10 @@ Miscellaneous scripts
 
 ## Usage
 
-Copy `config/admin.cfg.tmpl` to `config/admin.cfg`
-and set suitable variables in `config/admin.cfg`.
+Copy `config/admin-utils.conf.sample` to `config/admin-utils.conf`
+and set suitable variables in `config/admin-utils.conf`.
 
-## bin/git-init
+## bin/admin-git-init
 
 Creates Git repository with initializaion script.
 
@@ -15,13 +15,13 @@ Creates Git repository with initializaion script.
 
 For Redmine:
 
-    ./bin/git-init REPOS_NAME
+    ./bin/admin-git-init REPOS_NAME
 
 For JIRA:
 
-    ./bin/git-init REPOS_NAME JIRA_PROJ_KEY
+    ./bin/admin-git-init REPOS_NAME JIRA_PROJ_KEY
 
-## bin/svn-init
+## bin/admin-svn-init
 
 Creates Subversion repository with standard layout and a hook script.
 
@@ -29,20 +29,20 @@ Creates Subversion repository with standard layout and a hook script.
 
 For Redmine:
 
-    ./bin/svn-init REPOS_NAME
+    ./bin/admin-svn-init REPOS_NAME
 
 For JIRA:
 
-    ./bin/svn-init REPOS_NAME JIRA_PROJ_KEY
+    ./bin/admin-svn-init REPOS_NAME JIRA_PROJ_KEY
 
-## bin/svn-authz-update
+## bin/admin-svn-authz-update
 
 Creates Subversion AUTHZ template file for Atlassian Crowd
 and update AUTHZ file.
 
 ### Usage
 
-    ./bin/svn-authz-update JIRA_PROJ_KEY \
+    ./bin/admin-svn-authz-update JIRA_PROJ_KEY \
         -r repos1 -r repos2 \
         @xyz-administrators:/=r,/trunk=rw,/branches=rw,/tags=rw \
         @xyz-developers:/=r,/trunk=rw,/branches=rw,/tags=r \

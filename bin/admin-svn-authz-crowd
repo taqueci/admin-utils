@@ -1,0 +1,36 @@
+#!/bin/bash
+
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
+else
+	conf=/etc/admin-utils.conf
+fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
+
+
+tmp_authz=$(mktemp)
+tmp_config=$(mktemp)
+
+cat <<EOF > $tmp_config
+crowd.base.url=$SVN_CROWD_URL
+application.name=$SVN_CROWD_NAME
+application.password=$SVN_CROWD_PASSWD
+EOF
+
+if $admin_svn_crowd_script --config $tmp_config --check-event-token $admin_svn_authz; then
+	: # Do nothing; file is current
+else
+	$admin_svn_crowd_script --config $tmp_config $admin_svn_authz_tmpl > $tmp_authz &&
+		install -o $admin_svn_owner -g $admin_svn_group -m 600 $tmp_authz $admin_svn_authz || {
+			rm -f $tmp_authz $tmp_config
+			exit 1
+		}
+fi
+
+rm -f $tmp_authz $tmp_config

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Usage: mysql-backup.sh [BACKUPDIR] [TARGET] ...
+
+topdir=$(dirname $(dirname $(readlink -f $0)))
+if [ ! -z "$ADMIN_UTILS_CONF" ]; then
+	conf=$ADMIN_UTILS_CONF
+elif [ -f $topdir/config/admin-utils.conf ]; then
+	conf=$topdir/config/admin-utils.conf
+else
+	conf=/etc/admin-utils.conf
+fi
+source $conf || exit 1
+admin_utils_bin=${ADMIN_UTILS_BIN:-$topdir/bin}
+admin_utils_lib=${ADMIN_UTILS_LIB:-$topdir/lib}
+admin_utils_script=${ADMIN_UTILS_SCRIPT:-$topdir/script}
+
+
+backupdir=${1:-$(date +$admin_mysql_backup_dir)}
+
+if [ -z "$2" ]; then
+	targets=$admin_mysql_backup_targets
+else
+	shift
+	targets=$@
+fi
+
+test -d $backupdir || mkdir -p $backupdir || exit 1
+
+for t in $targets; do
+	file=$backupdir/$admin_mysql_backup_prefix$t.gz
+
+	echo "Creating MySQL dump from $t to $file"
+	mysqldump -u"$admin_mysql_user" -p"$admin_mysql_password" $t |
+		gzip -c > $file
+done
+
+echo "Completed!"
